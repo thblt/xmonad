@@ -163,6 +163,33 @@ rootMask =  substructureRedirectMask .|. substructureNotifyMask
 ------------------------------------------------------------------------
 -- Key bindings:
 
+
+-- | A type to pass the current keyboard mapping to intlConfig.  Extending KbdType
+-- | requires extending the intlWorkspaceKeys and intlXineramaKeys functions.
+class KbdTypeDescriptor d where
+  intlWorkspaceKeys :: d -> [KeySym]
+  intlXineramaKeys :: d -> [KeySym]
+
+data KbdTypes =
+  EnUS         -- | US English
+  | FrBÉPO     -- | French, Bépo
+  | FrBE       -- | French, Belgium
+  | FrCH       -- | French, Switzerland
+  | FrFR       -- | French, France (PC)
+  | FrFR_Apple -- | French, France (Apple variant)
+
+instance KbdTypeDescriptor KbdTypes where
+  intlWorkspaceKeys EnUS = [xK_0, xK_1, xK_2, xK_3, xK_4, xK_5, xK_6, xK_7, xK_8, xK_9]
+  intlWorkspaceKeys FrBE = [0x26,0xe9,0x22,0x27,0x28,0xa7,0xe8,0x21,0xe7,0xe0]
+  intlWorkspaceKeys FrFR = [0x26,0xe9,0x22,0x27,0x28,0x2d,0xe8,0x5f,0xe7,0xe0]
+  intlWorkspaceKeys FrFR_Apple = [0x26,0xe9,0x22,0x27,0x28,0xa7,0xe8,0x21,0xe7,0xe0]
+  intlXineramaKeys EnUS =       [xK_w, xK_e, xK_r]
+  intlXineramaKeys FrBÉPO =     [xK_eacute, xK_p, xK_o]
+  intlXineramaKeys FrBE =       [xK_z, xK_e, xK_r]
+  intlXineramaKeys FrCH =       [xK_w, xK_e, xK_r]
+  intlXineramaKeys FrFR =       [xK_z, xK_e, xK_r]
+  intlXineramaKeys FrFR_Apple = [xK_z, xK_e, xK_r]
+
 -- | The preferred terminal program, which is used in a binding below and by
 -- certain contrib modules.
 terminal :: String
@@ -176,13 +203,12 @@ focusFollowsMouse = True
 clickJustFocuses :: Bool
 clickJustFocuses = True
 
-
 -- | The xmonad key bindings. Add, modify or remove key bindings here.
 --
 -- (The comment formatting character is used when generating the manpage)
 --
-keys :: XConfig Layout -> M.Map (KeyMask, KeySym) (X ())
-keys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
+keys :: KbdTypeDescriptor d => d -> XConfig Layout -> M.Map (KeyMask, KeySym) (X ())
+keys desc conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     -- launching and killing programs
     [ ((modMask .|. shiftMask, xK_Return), spawn $ XMonad.terminal conf) -- %! Launch terminal
     , ((modMask,               xK_p     ), spawn "dmenu_run") -- %! Launch dmenu
@@ -229,7 +255,7 @@ keys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     -- mod-[1..9] %! Switch to workspace N
     -- mod-shift-[1..9] %! Move client to workspace N
     [((m .|. modMask, k), windows $ f i)
-        | (i, k) <- zip (XMonad.workspaces conf) [xK_1 .. xK_9]
+        | (i, k) <- zip (XMonad.workspaces conf) $ intlWorkspaceKeys desc
         , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]]
     ++
     -- mod-{w,e,r} %! Switch to physical/Xinerama screens 1, 2, or 3
